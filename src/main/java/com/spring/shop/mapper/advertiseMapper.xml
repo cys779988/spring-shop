@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="advertiseMapper">
+
+	<select id="selectAdvertiseList" parameterType="com.spring.shop.advertise.service.AdvertiseVO" resultType="com.spring.shop.advertise.service.AdvertiseVO">
+        select * from ADVERTISE
+    </select>
+    <select id="listPage" resultType="com.spring.shop.advertise.service.AdvertiseVO">
+				SELECT  ADNUM 
+	   					, ADNAME
+	   					, ADDES 
+	   					, ADIMG
+	   					, ADTHUMBIMG
+		 FROM ( 
+		        SELECT ADNUM 
+	   					, ADNAME
+	   					, ADDES 
+	   					, ADIMG
+	   					, ADTHUMBIMG,
+		               ROW_NUMBER() OVER(ORDER BY ADNUM DESC) AS RNUM
+		         FROM TBL_ADVERTISE
+		         WHERE 1=1 
+		         	<include refid="search"></include>
+		                       )
+		WHERE RNUM BETWEEN #{rowStart} AND #{rowEnd}
+		ORDER BY ADNUM DESC
+	</select>
+    
+    <select id="listCount" parameterType="com.spring.shop.common.service.SearchCriteria" resultType="int">
+		SELECT COUNT(ADNUM)
+		   FROM TBL_ADVERTISE, TBL_MEMBER
+		   WHERE 1=1
+		<include refid="search"></include>	
+		   AND ADNUM > 0
+	</select>
+	
+    <insert id="insert" parameterType="com.spring.shop.advertise.service.AdvertiseVO">
+      <!-- <selectKey keyProperty="adNum" resultType="int" order="BEFORE">
+	    	SELECT ADVERTISE_SEQ.NEXTVAL FROM DUAL
+	  </selectKey> -->
+	   INSERT INTO TBL_ADVERTISE(    ADNUM 
+	   					      , ADNAME
+	   					      , ADDES 
+	   					      , ADIMG
+	   					      , ADTHUMBIMG)
+	                 VALUES(  ADVERTISE_SEQ.NEXTVAL
+	                 		  , #{adName}
+	                 		  , #{adDes}
+	                 		  , #{adImg}
+	                 		  , #{adThumbImg}  )
+   </insert>
+
+   <select id="read" parameterType="int" resultType="com.spring.shop.advertise.service.AdvertiseVO">
+		SELECT	  ADNUM 
+	   			, ADNAME
+	   			, ADDES 
+	   			, ADIMG
+	   			, ADTHUMBIMG
+		 FROM TBL_ADVERTISE
+		 WHERE ADNUM = #{adNum}
+	</select>
+	
+	<update id="update">
+		update TBL_ADVERTISE
+		set
+		adName = #{adName}
+		, adDes = #{adDes}
+		<if test="adImg != null and adThumbImg != null">
+			, adImg = #{adImg}
+			, adThumbImg = #{adThumbImg}
+		</if>
+		where
+		adNum = ${adNum}
+	</update>
+	
+	<delete id="delete">
+		delete
+		TBL_ADVERTISE
+		where adNum = #{adNum}
+	</delete>
+	
+	<sql id="search">
+		<if test="searchType != null">
+			<if test="searchType == 't'.toString()">AND ADNAME LIKE '%' || #{keyword} || '%'</if>
+		</if>
+	</sql>
+	
+</mapper>

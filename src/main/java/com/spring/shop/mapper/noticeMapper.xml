@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="noticeMapper">
+
+	<select id="selectNoticeList" parameterType="com.spring.shop.notice.service.NoticeVO" resultType="com.spring.shop.notice.service.NoticeVO">
+        SELECT * FROM TBL_NOTICE
+    </select>
+
+	<insert id="insert" parameterType="com.spring.shop.notice.service.NoticeVO" useGeneratedKeys="true" keyProperty="nno">
+      <selectKey keyProperty="nno" resultType="int" order="BEFORE">
+	    	SELECT NOTICE_SEQ.NEXTVAL FROM DUAL
+	    </selectKey>
+	   INSERT INTO TBL_NOTICE(    NNO 
+	   					      , TITLE 
+	   					      , CONTENT 
+	   					      , WRITER
+	   					      , NIMG
+	   					      , NTHUMBIMG  )
+	                 VALUES(    #{nno}
+	                 		  , #{title}
+	                 		  , #{content}
+	                 		  , #{writer}
+	                 		  , #{nImg}
+	                 		  , #{nThumbImg}  )
+   </insert>
+   <select id="read" parameterType="int" resultType="com.spring.shop.notice.service.NoticeVO">
+		SELECT	NNO
+			  , TITLE
+			  , CONTENT
+			  , WRITER
+			  , REGDATE
+			  , NIMG
+			  , NTHUMBIMG
+		 FROM TBL_NOTICE
+		 WHERE NNO = #{nno}
+	</select>
+	<update id="update" parameterType="com.spring.shop.notice.service.NoticeVO">
+		UPDATE TBL_NOTICE
+		   SET TITLE			= #{title}
+		   	   , CONTENT		= #{content}
+		   	   <if test="nImg != null and nThumbImg != null">
+			   	   , NIMG		= #{nImg}
+			   	   , NTHUMBIMG	= #{nThumbImg}
+			   </if>
+		 WHERE NNO = #{nno} 
+	</update>
+	
+	<delete id="delete" parameterType="int">
+		DELETE 
+		  FROM TBL_NOTICE
+		 WHERE NNO = #{nno}
+	</delete>
+	
+	
+	<select id="listPage" resultType="com.spring.shop.notice.service.NoticeVO" parameterType="com.spring.shop.common.service.SearchCriteria">
+		SELECT  NNO, 
+		        TITLE, 
+		        CONTENT,
+		        WRITER, 
+		        REGDATE,
+		        HIT
+		 FROM ( 
+		        SELECT NNO, 
+		               TITLE, 
+		               CONTENT, 
+		               WRITER, 
+		               REGDATE, 
+		               HIT,
+		               ROW_NUMBER() OVER(ORDER BY NNO DESC) AS RNUM
+		         FROM TBL_NOTICE
+		         WHERE 1=1 
+		         	<include refid="search"></include>
+		                       )
+		WHERE RNUM BETWEEN #{rowStart} AND #{rowEnd}
+		ORDER BY NNO DESC
+	</select>
+	
+	<select id="listCount" parameterType="com.spring.shop.common.service.SearchCriteria" resultType="int">
+		SELECT COUNT(NNO)
+		   FROM TBL_NOTICE, TBL_MEMBER
+		   WHERE 1=1
+		<include refid="search"></include>	
+		   AND NNO > 0
+	</select>
+	
+     <!-- 게시판 조회수 -->
+    <update id="noticeHit" parameterType="int">
+    	UPDATE TBL_NOTICE
+    	SET
+    	HIT = HIT+1
+    	WHERE NNO = #{nno}
+    </update>
+    
+    	<select id="readNoticeReply"
+		resultType="com.spring.shop.notice.service.NoticeReplyVO">
+		SELECT
+		RNO, 
+		CONTENT, 
+		WRITER, 
+		REGDATE
+		FROM TBL_NOTICE_REPLY
+		WHERE NNO = #{nno}
+	</select>
+
+	<insert id="writeNoticeReply">
+		INSERT INTO TBL_NOTICE_REPLY(
+		NNO, 
+		RNO, 
+		CONTENT, 
+		WRITER)
+		VALUES(
+		#{nno}, 
+		REPLY_SEQ.NEXTVAL, 
+		#{content}, 
+		#{writer} 
+		)
+	</insert>
+	
+    <select id="updateReplyForm" resultType="com.spring.shop.notice.service.NoticeReplyVO">
+		SELECT
+		NNO
+		, RNO
+		, CONTENT
+		, WRITER
+		, REGDATE
+		FROM TBL_NOTICE_REPLY
+		WHERE NNO = #{nno}
+		AND RNO = #{rno}
+	</select>
+	
+	<update id="updateNoticeReply"
+		parameterType="com.spring.shop.notice.service.NoticeReplyVO">
+		UPDATE TBL_NOTICE_REPLY
+		SET CONTENT = #{content}
+		WHERE RNO = #{rno}
+	</update>
+
+	<delete id="deleteNoticeReply"
+		parameterType="com.spring.shop.notice.service.NoticeReplyVO">
+		DELETE FROM TBL_NOTICE_REPLY
+		WHERE RNO = #{rno}
+	</delete>
+
+	<select id="selectNoticeReply"
+		resultType="com.spring.shop.notice.service.NoticeReplyVO">
+		SELECT
+		NNO
+		, RNO
+		, CONTENT
+		, WRITER
+		, REGDATE
+		FROM TBL_NOTICE_REPLY
+		WHERE RNO = #{rno}
+	</select>
+	
+	<sql id="search">
+		<if test="searchType != null">
+			<if test="searchType == 't'.toString()">AND TITLE LIKE '%' || #{keyword} || '%'</if>
+			<if test="searchType == 'c'.toString()">AND CONTENT LIKE '%' || #{keyword} || '%'</if>
+			<if test="searchType == 'w'.toString()">AND WRITER LIKE '%' || #{keyword} || '%'</if>
+			<if test="searchType == 'tc'.toString()">AND (TITLE LIKE '%' || #{keyword} || '%') or (CONTENT LIKE '%' || #{keyword} || '%')</if>
+		</if>
+	</sql>
+</mapper>
